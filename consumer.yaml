@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-consumer
+  template:
+    metadata:
+      labels:
+        app: kafka-consumer
+    spec:
+      containers:
+      - name: kafkaconsumer
+        image: test/kafkaconsumer:latest
+        imagePullPolicy: Never
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: kafka-consumer
+spec:
+  scaleTargetRef:
+    name: kafka-consumer
+  pollingInterval:  30
+  cooldownPeriod:   300
+  minReplicaCount:  1
+  maxReplicaCount:  5
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+  triggers:
+  - type: kafka
+    metadata:
+      bootstrapServers: demo-kafka-0.demo-kafka-headless.demo.svc.cluster.local:9092
+      consumerGroup: demo-group
+      topic: demo-topic
+      lagThreshold: '5'
+      activationLagThreshold: '0'
+      offsetResetPolicy: latest
+      allowIdleConsumers: false
+      scaleToZeroOnInvalidOffset: false

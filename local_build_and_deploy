@@ -1,0 +1,17 @@
+#!/bin/bash
+
+kubectl -n demo delete -f producer.yaml
+kubectl -n demo delete -f consumer.yaml
+
+sleep 5
+
+eval $(minikube docker-env)
+
+docker image rm test/kafkaproducer:latest
+docker image rm test/kafkaconsumer:latest
+
+docker build -t test/kafkaproducer:latest -f Dockerfile.producer .
+docker build -t test/kafkaconsumer:latest -f Dockerfile.consumer .
+
+kubectl -n demo apply -f producer.yaml
+kubectl -n demo apply -f consumer.yaml
